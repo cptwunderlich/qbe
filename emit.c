@@ -525,7 +525,13 @@ emitfn(Fn *fn, FILE *f)
 	} else {
 		fs += 8; // Reserve space for canary
 		cPrologue =
+				"\tpush %rdi\n"
+				"\tpush %rsi\n"
+				"\tpush %rdx\n"
 				"\tcall get_random_canary\n"
+				"\tpop %rdx\n"
+				"\tpop %rsi\n"
+				"\tpop %rdi\n"
 				"\taddq $8, %fs:0x0\n"
 				"\tmovq %fs:0x0, %r11\n"
 				"\tmov %rax, %fs:(%r11)\n"
