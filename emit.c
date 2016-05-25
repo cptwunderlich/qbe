@@ -535,8 +535,9 @@ emitfn(Fn *fn, FILE *f)
 				"\taddq $8, %fs:0x0\n"
 				"\tmovq %fs:0x0, %r11\n"
 				"\tmov %rax, %fs:(%r11)\n"
-				"\tpush %rax\n"
-				"\txor %rax, %rax\n";
+				"\tmov %rax, -16(%rbp)\n"
+				"\txor %rax, %rax\n"
+				"\txor %r11, %r11\n";
 	}
 
 	fprintf(f, "\tsub $%d, %%rsp\n%s", fs, cPrologue);
@@ -562,8 +563,8 @@ emitfn(Fn *fn, FILE *f)
 			// If stack canary not deactivated, emit code
 			if (!noCanary) {
 				fprintf(f,
-					"\tmov %%fs:0x0, %%r10\n"
-					"\tmov -16(%%rbp), %%r11\n"
+					"\tmovq %%fs:0x0, %%r10\n"
+					"\tmovq -16(%%rbp), %%r11\n"
 					"\txor %%fs:(%%r10), %%r11\n"
 					"\tje %s%s_%d_SKIP\n"
 					"\tcall __stack_chk_fail\n"
