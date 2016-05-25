@@ -1,8 +1,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-int get_random_canary(void) {
-  int res;
+long get_random_canary(void) {
+  long res;
   int fd = open("/dev/urandom", O_RDONLY);
   if (fd >= 0) {
     ssize_t reslen = read(fd, &res, sizeof(res));
@@ -10,6 +10,6 @@ int get_random_canary(void) {
       return res;
   }
 
-  return 0;
+  return 0xff0a0000;
 }
 

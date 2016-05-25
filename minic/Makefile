@@ -1,13 +1,16 @@
 BIN = minic
+CANARY = get_random_canary
 
 CFLAGS += -g -Wall
 
-$(BIN): yacc minic.y
+$(BIN): yacc minic.y $(CANARY).s
 	./yacc minic.y
 	$(CC) $(CFLAGS) -o $@ y.tab.c
-	$(CC) -g -S -fno-stack-protector -fpic get_random_canary.c
+
+$(CANARY).s: $(CANARY).c
+	$(CC) -g -S -fno-stack-protector -fpic $(CANARY).c
 
 clean:
-	rm -f yacc minic y.* get_random_canary.s
+	rm -f yacc minic y.* $(CANARY).s
 
 .PHONY: clean
