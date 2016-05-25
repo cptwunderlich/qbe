@@ -505,6 +505,8 @@ emitfn(Fn *fn, FILE *f)
 	Blk *b, *s;
 	Ins *i, itmp;
 	int *r, c, fs;
+	int lblCnt=0;
+	char *cPrologue; // Canary prologue
 
 	fprintf(f, ".text\n");
 	if (fn->export)
@@ -515,13 +517,23 @@ emitfn(Fn *fn, FILE *f)
 		"\tmov %%rsp, %%rbp\n",
 		symprefix, fn->name
 	);
+
 	fs = framesz(fn);
-	fs += 8; // Reserve space for canary
-	fprintf(f, "\tsub $%d, %%rsp\n"
-			"\tcall get_random_canary\n"
-			"\tmov %%rax, %%fs:0x0\n"
-			"\tpush %%rax\n"
-			"\txor %%rax, %%rax\n", fs);
+
+	if (noCanary) {
+		cPrologue = "";
+	} else {
+		fs += 8; // Reserve space for canary
+		cPrologue =
+				"\tcall get_random_canary\n"
+				"\taddq $8, %fs:0x0\n"
+				"\tmovq %fs:0x0, %r11\n"
+				"\tmov %rax, %fs:(%r11)\n"
+				"\tpush %rax\n"
+				"\txor %rax, %rax\n";
+	}
+
+	fprintf(f, "\tsub $%d, %%rsp\n%s", fs, cPrologue);
 
 	for (r=rclob; r-rclob < NRClob; r++)
 		if (fn->reg & BIT(*r)) {
@@ -540,15 +552,26 @@ emitfn(Fn *fn, FILE *f)
 					itmp.arg[0] = TMP(*r);
 					emitf("popq %L0", &itmp, fn, f);
 				}
+
+			// If stack canary not deactivated, emit code
+			if (!noCanary) {
+				fprintf(f,
+					"\tmov %%fs:0x0, %%r10\n"
+					"\tmov -16(%%rbp), %%r11\n"
+					"\txor %%fs:(%%r10), %%r11\n"
+					"\tje %s%s_%d_SKIP\n"
+					"\tcall __stack_chk_fail\n"
+					"%s%s_%d_SKIP:\n"
+					"\tsubq	 $8, %%fs:0x0\n",
+					locprefix, fn->name, lblCnt,
+					locprefix, fn->name, lblCnt);
+			}
+
 			fprintf(f,
-				"\tmov -16(%%rbp), %%r11\n"
-				"\txor %%fs:0x0, %%r11\n"
-				"\tje SKIP\n"
-				"\tcall __stack_chk_fail\n"
-				"SKIP:\n"
 				"\tleave\n"
 				"\tret\n"
 			);
+			lblCnt++;
 			break;
 		case Jjmp:
 		Jmp:
@@ -691,4 +714,10 @@ emitfin(FILE *f)
 		stash = b->link;
 		free(b);
 	}
+}
+
+void emitinit(FILE *f)
+{
+	fprintf(f, ".section .init\n"
+			"\tmovq $0, %%fs:0x0\n\n");
 }

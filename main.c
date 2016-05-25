@@ -16,6 +16,8 @@ char debug['Z'+1] = {
 	['R'] = 0, /* reg. allocation */
 };
 
+int noCanary;
+
 static FILE *outf;
 static int dbg;
 
@@ -85,7 +87,7 @@ main(int ac, char *av[])
 
 	asm = Defaultasm;
 	outf = stdout;
-	while ((c = getopt(ac, av, "hd:o:G:")) != -1)
+	while ((c = getopt(ac, av, "hud:o:G:")) != -1)
 		switch (c) {
 		case 'd':
 			for (; *optarg; optarg++)
@@ -108,6 +110,9 @@ main(int ac, char *av[])
 				exit(1);
 			}
 			break;
+		case 'u':
+			noCanary = 1;
+			break;
 		case 'h':
 		default:
 			fprintf(stderr, "%s [OPTIONS] {file.ssa, -}\n", av[0]);
@@ -115,6 +120,7 @@ main(int ac, char *av[])
 			fprintf(stderr, "\t%-10s output to file\n", "-o file");
 			fprintf(stderr, "\t%-10s generate gas (e) or osx (m) asm\n", "-G {e,m}");
 			fprintf(stderr, "\t%-10s dump debug information\n", "-d <flags>");
+			fprintf(stderr, "\t%-10s Unprotected - don't emit stack canary code\n", "-u");
 			exit(c != 'h');
 		}
 
@@ -146,6 +152,9 @@ main(int ac, char *av[])
 
 	if (!dbg)
 		emitfin(outf);
+
+	if (!noCanary)
+		emitinit(outf);
 
 	exit(0);
 }

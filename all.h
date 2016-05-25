@@ -475,6 +475,7 @@ enum Asm {
 	Gaself,
 };
 extern char debug['Z'+1];
+extern int noCanary;
 
 /* util.c */
 extern Typ typ[NTyp];
@@ -568,3 +569,4 @@ void emitfn(Fn *, FILE *);
 void emitdat(Dat *, FILE *);
 int stashfp(int64_t, int);
 void emitfin(FILE *);
+void emitinit(FILE *);

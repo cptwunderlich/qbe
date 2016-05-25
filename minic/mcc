@@ -32,7 +32,7 @@ fi
 
 
 $DIR/minic < $file          > /tmp/minic.ssa &&
-$QBE       < /tmp/minic.ssa > /tmp/minic.s   &&
+$QBE -u    < /tmp/minic.ssa > /tmp/minic.s   &&
 cc $flags /tmp/minic.s $(dirname $0)/get_random_canary.s
 
 if test $? -ne 0
