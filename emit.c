@@ -516,8 +516,13 @@ emitfn(Fn *fn, FILE *f)
 		symprefix, fn->name
 	);
 	fs = framesz(fn);
-	if (fs)
-		fprintf(f, "\tsub $%d, %%rsp\n", fs);
+	fs += 8; // Reserve space for canary
+	fprintf(f, "\tsub $%d, %%rsp\n"
+			"\tcall get_random_canary\n"
+			"\tmov %%rax, %%fs:0x0\n"
+			"\tpush %%rax\n"
+			"\txor %%rax, %%rax\n", fs);
+
 	for (r=rclob; r-rclob < NRClob; r++)
 		if (fn->reg & BIT(*r)) {
 			itmp.arg[0] = TMP(*r);
@@ -536,6 +541,11 @@ emitfn(Fn *fn, FILE *f)
 					emitf("popq %L0", &itmp, fn, f);
 				}
 			fprintf(f,
+				"\tmov -16(%%rbp), %%r11\n"
+				"\txor %%fs:0x0, %%r11\n"
+				"\tje SKIP\n"
+				"\tcall __stack_chk_fail\n"
+				"SKIP:\n"
 				"\tleave\n"
 				"\tret\n"
 			);
