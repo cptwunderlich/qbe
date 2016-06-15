@@ -1,3 +1,16 @@
+# About this fork
+
+This fork implements stack canaries (or stack smashing protection),
+in order to explore the concept.
+The work was done for the course "Language based Security" at UT Vienna.
+
+Most of the code is in emit.c, especially emitfn().
+This is supposed to implement per-call random canaries.
+Random canaries are generated for each function at startup and the
+canary value gets xored with the return address on each call.
+
+# Original README
+
 QBE - Backend Compiler              http://c9x.me/compile/
 
 doc/    Documentation.
