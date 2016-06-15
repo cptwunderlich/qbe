@@ -1,5 +1,18 @@
 #include "all.h"
 
+/**** function name linked-list ****/
+
+struct fnname_ll {
+	char name[NString];
+	struct fnname_ll* next;
+};
+
+typedef struct fnname_ll fnname_ll;
+
+static fnname_ll fnnames = { "", NULL };
+
+/**** ****/
+
 char *locprefix, *symprefix;
 
 enum {
@@ -142,7 +155,7 @@ slot(int s, Fn *fn)
 		return -4 * x.i;
 	else {
 		assert(fn->slot >= x.i);
-		return -4 * (fn->slot - x.i);
+		return -4 * (fn->slot - x.i) - 8;
 	}
 }
 
@@ -506,7 +519,27 @@ emitfn(Fn *fn, FILE *f)
 	Ins *i, itmp;
 	int *r, c, fs;
 	int lblCnt=0;
-	char *cPrologue; // Canary prologue
+
+	// Create per-function canary global
+	fprintf(f,
+			".local %sc\n"
+			".comm %sc,8,8\n"
+			".section .rodata\n",
+			fn->name, fn->name);
+
+	fnname_ll *fns = &fnnames;
+	while (fns->next != NULL) {
+		fns = fns->next;
+	}
+
+	strncpy(fns->name, fn->name, NString);
+	fns->next = (fnname_ll*) malloc(sizeof(fnname_ll)); // Malloc never fails, right? right...
+	fns->next->next = NULL;
+
+	// Function begin
+
+	++(fn->slot);
+	fs = framesz(fn);
 
 	fprintf(f, ".text\n");
 	if (fn->export)
@@ -514,33 +547,14 @@ emitfn(Fn *fn, FILE *f)
 	fprintf(f,
 		"%s%s:\n"
 		"\tpush %%rbp\n"
-		"\tmov %%rsp, %%rbp\n",
-		symprefix, fn->name
+		"\tmov %%rsp, %%rbp\n"
+		"\tsub $%d, %%rsp\n"
+		"\tmovq %sc(%%rip), %%rax\n"
+		"\txor 8(%%rbp), %%rax\n"
+		"\tmov %%rax, -8(%%rbp)\n"
+		"\txor %%rax, %%rax\n",
+		symprefix, fn->name, fs, fn->name
 	);
-
-	fs = framesz(fn);
-
-	if (noCanary) {
-		cPrologue = "";
-	} else {
-		fs += 8; // Reserve space for canary
-		cPrologue =
-				"\tpush %rdi\n"
-				"\tpush %rsi\n"
-				"\tpush %rdx\n"
-				"\tcall get_random_canary\n"
-				"\tpop %rdx\n"
-				"\tpop %rsi\n"
-				"\tpop %rdi\n"
-				"\taddq $8, %fs:0x0\n"
-				"\tmovq %fs:0x0, %r11\n"
-				"\tmov %rax, %fs:(%r11)\n"
-				"\tmov %rax, -16(%rbp)\n"
-				"\txor %rax, %rax\n"
-				"\txor %r11, %r11\n";
-	}
-
-	fprintf(f, "\tsub $%d, %%rsp\n%s", fs, cPrologue);
 
 	for (r=rclob; r-rclob < NRClob; r++)
 		if (fn->reg & BIT(*r)) {
@@ -563,13 +577,14 @@ emitfn(Fn *fn, FILE *f)
 			// If stack canary not deactivated, emit code
 			if (!noCanary) {
 				fprintf(f,
-					"\tmovq %%fs:0x0, %%r10\n"
-					"\tmovq -16(%%rbp), %%r11\n"
-					"\txor %%fs:(%%r10), %%r11\n"
+					"\tmovq %sc(%%rip), %%r11\n"
+					"\txor 8(%%rbp), %%r11\n"
+					"\txor -8(%%rbp), %%r11\n"
 					"\tje %s%s_%d_SKIP\n"
 					"\tcall __stack_chk_fail\n"
 					"%s%s_%d_SKIP:\n"
-					"\tsubq	 $8, %%fs:0x0\n",
+					"\taddq	 $8, %%rsp\n",
+					fn->name,
 					locprefix, fn->name, lblCnt,
 					locprefix, fn->name, lblCnt);
 			}
@@ -725,6 +740,28 @@ emitfin(FILE *f)
 
 void emitinit(FILE *f)
 {
-	fprintf(f, ".section .init\n"
-			"\tmovq $0, %%fs:0x0\n\n");
+	fnname_ll *fn = &fnnames, *tmp;
+	if (strlen(fnnames.name) > 0) {
+		fprintf(f, ".section .init\n"
+				   "\tpush %%rdi\n"
+				   "\tpush %%rsi\n"
+				   "\tpush %%rdx\n");
+
+		do {
+			fprintf(f,
+					"\tcall get_random_canary\n"
+					"\tmovq %%rax, %sc(%%rip)\n",
+					fn->name);
+			tmp = fn->next;
+			if (fn != &fnnames)
+				free(fn);
+			fn = tmp;
+		} while (fn->next != NULL);
+
+		fprintf(f,
+				"\txor %%rax, %%rax\n"
+				"\tpop %%rdx\n"
+				"\tpop %%rsi\n"
+				"\tpop %%rdi\n");
+	}
 }
