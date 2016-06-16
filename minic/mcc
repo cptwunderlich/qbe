@@ -9,10 +9,10 @@ usage()
 	exit 1
 }
 
-for i
+for i in "$@"
 do
 	case $i in
-	-u)	nocanary="$i"
+	-u)	unprotected_stack="$i"
 		;;
 	-*)
 		flags="$flags $i"
@@ -34,7 +34,7 @@ fi
 
 
 $DIR/minic 	< $file          > /tmp/minic.ssa &&
-$QBE $nocanary  < /tmp/minic.ssa > /tmp/minic.s   &&
+$QBE $unprotected_stack < /tmp/minic.ssa > /tmp/minic.s   &&
 cc $flags /tmp/minic.s $(dirname $0)/get_random_canary.s
 
 if test $? -ne 0
