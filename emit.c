@@ -1,5 +1,14 @@
 #include "all.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#include <errno.h>
+#include <string.h>
+
+#include <unistd.h>
+
 /**** function name linked-list ****/
 
 struct fnname_ll {
@@ -497,6 +506,33 @@ framesz(Fn *fn)
 	return 4*f + 8*o;
 }
 
+/*
+ * returns 0 with p = 0.2
+ */
+int
+flip_fair_five_sided_coin() {
+
+	int fd = -1;
+
+	fd = open("/dev/urandom", O_RDONLY);
+
+	int bytes_read = 0;
+	uint32_t rand_buf;
+
+	while (bytes_read < (int) sizeof(uint32_t)) {
+		bytes_read = read(fd, &rand_buf, sizeof(rand_buf) - bytes_read );
+
+		if (bytes_read == -1 && bytes_read != 0) {
+			fprintf(stderr, "read(): %s", strerror(errno));
+		}
+	}
+
+	close(fd);
+
+	return (rand_buf % 5);
+
+}
+
 void
 emitfn(Fn *fn, FILE *f)
 {
@@ -572,8 +608,12 @@ emitfn(Fn *fn, FILE *f)
 
 	for (b=fn->start; b; b=b->link) {
 		fprintf(f, "%sbb%d: /* %s */\n", locprefix, id0+b->id, b->name);
-		for (i=b->ins; i!=&b->ins[b->nins]; i++)
+		for (i=b->ins; i!=&b->ins[b->nins]; i++) {
 			emitins(*i, fn, f);
+			if (flip_fair_five_sided_coin() == 0) {
+				fprintf(f, "\tnop\n");
+			}
+		}
 		switch (b->jmp.type) {
 		case Jret0:
 			for (r=&rclob[NRClob]; r>rclob;)
