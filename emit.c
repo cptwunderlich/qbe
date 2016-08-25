@@ -520,25 +520,28 @@ emitfn(Fn *fn, FILE *f)
 	int *r, c, fs;
 	int lblCnt=0;
 
-	// Create per-function canary global
-	fprintf(f,
-			".local %sc\n"
-			".comm %sc,8,8\n"
-			".section .rodata\n",
-			fn->name, fn->name);
+	if (stackprotection) {
+		// Create per-function canary global
+		fprintf(f,
+				".local %sc\n"
+				".comm %sc,8,8\n"
+				".section .rodata\n",
+				fn->name, fn->name);
 
-	fnname_ll *fns = &fnnames;
-	while (fns->next != NULL) {
-		fns = fns->next;
+		fnname_ll *fns = &fnnames;
+		while (fns->next != NULL) {
+			fns = fns->next;
+		}
+
+		strncpy(fns->name, fn->name, NString);
+		fns->next = (fnname_ll*) malloc(sizeof(fnname_ll)); // Malloc never fails, right? right...
+		fns->next->next = NULL;
+
+		// Add slot for canary value
+		++(fn->slot);
 	}
 
-	strncpy(fns->name, fn->name, NString);
-	fns->next = (fnname_ll*) malloc(sizeof(fnname_ll)); // Malloc never fails, right? right...
-	fns->next->next = NULL;
-
 	// Function begin
-
-	++(fn->slot);
 	fs = framesz(fn);
 
 	fprintf(f, ".text\n");
@@ -548,13 +551,18 @@ emitfn(Fn *fn, FILE *f)
 		"%s%s:\n"
 		"\tpush %%rbp\n"
 		"\tmov %%rsp, %%rbp\n"
-		"\tsub $%d, %%rsp\n"
-		"\tmovq %sc(%%rip), %%rax\n"
-		"\txor 8(%%rbp), %%rax\n"
-		"\tmov %%rax, -8(%%rbp)\n"
-		"\txor %%rax, %%rax\n",
-		symprefix, fn->name, fs, fn->name
+		"\tsub $%d, %%rsp\n",
+		symprefix, fn->name, fs
 	);
+
+	if (stackprotection) {
+		fprintf(f,
+				"\tmovq %sc(%%rip), %%rax\n"
+				"\txor 8(%%rbp), %%rax\n"
+				"\tmov %%rax, -8(%%rbp)\n"
+				"\txor %%rax, %%rax\n",
+				fn->name);
+	}
 
 	for (r=rclob; r-rclob < NRClob; r++)
 		if (fn->reg & BIT(*r)) {
@@ -575,7 +583,7 @@ emitfn(Fn *fn, FILE *f)
 				}
 
 			// If stack canary not deactivated, emit code
-			if (!noCanary) {
+			if (stackprotection) {
 				fprintf(f,
 					"\tmovq %sc(%%rip), %%r11\n"
 					"\txor 8(%%rbp), %%r11\n"

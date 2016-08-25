@@ -16,7 +16,7 @@ char debug['Z'+1] = {
 	['R'] = 0, /* reg. allocation */
 };
 
-int noCanary;
+int stackprotection=1;
 
 static FILE *outf;
 static int dbg;
@@ -111,7 +111,7 @@ main(int ac, char *av[])
 			}
 			break;
 		case 'u':
-			noCanary = 1;
+			stackprotection = 0;
 			break;
 		case 'h':
 		default:
@@ -153,7 +153,7 @@ main(int ac, char *av[])
 	if (!dbg)
 		emitfin(outf);
 
-	if (!noCanary)
+	if (stackprotection)
 		emitinit(outf);
 
 	exit(0);

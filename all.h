@@ -475,7 +475,7 @@ enum Asm {
 	Gaself,
 };
 extern char debug['Z'+1];
-extern int noCanary;
+extern int stackprotection;
 
 /* util.c */
 extern Typ typ[NTyp];
