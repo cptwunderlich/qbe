@@ -2,12 +2,26 @@
 
 This fork implements stack canaries (or stack smashing protection),
 in order to explore the concept.
-The work was done for the course "Language based Security" at UT Vienna.
 
 Most of the code is in emit.c, especially emitfn().
 This is supposed to implement per-call random canaries.
 Random canaries are generated for each function at startup and the
 canary value gets xored with the return address on each call.
+
+Deactive feature with "-u" (unprotected).
+
+It also implements software diversity by NOP-insertion (activate with -D).
+NOPs are inserted with a 25% probability.
+See [1] and [2].
+
+The work was done for the course "Language based Security" at UT Vienna.
+
+-----
+1 "Diversifying the Software Stack Using Randomized NOP Insertion"
+https://link.springer.com/chapter/10.1007/978-1-4614-5416-8_8/fulltext.html
+
+2 "Automated Software Diversity"
+https://books.google.at/books?id=6GVOCwAAQBAJ&lpg=PA49&dq=nop%20insertion%20probability&hl=de&pg=PA49#v=onepage&q=nop%20insertion%20probability&f=false
 
 # Original README
 
