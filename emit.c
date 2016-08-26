@@ -570,7 +570,10 @@ emitfn(Fn *fn, FILE *f)
 		}
 
 		strncpy(fns->name, fn->name, NString);
-		fns->next = (fnname_ll*) malloc(sizeof(fnname_ll)); // Malloc never fails, right? right...
+		fns->next = (fnname_ll*) malloc(sizeof(fnname_ll));
+		// Malloc succeeded?
+		if (fns->next == NULL)
+			die("malloc failed - out of memory?");
 		fns->next->next = NULL;
 
 		// Add slot for canary value
