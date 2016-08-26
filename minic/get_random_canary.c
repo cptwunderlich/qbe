@@ -10,6 +10,7 @@ long get_random_canary(void) {
       return res;
   }
 
+  // On failure, use terminator canary
   return 0xff0a0000;
 }
 
