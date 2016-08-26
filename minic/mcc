@@ -14,6 +14,8 @@ do
 	case $i in
 	-u)	unprotected_stack="$i"
 		;;
+	-D)     diversify="$i"
+		;;
 	-*)
 		flags="$flags $i"
 		;;
@@ -34,7 +36,7 @@ fi
 
 
 $DIR/minic 	< $file          > /tmp/minic.ssa &&
-$QBE $unprotected_stack < /tmp/minic.ssa > /tmp/minic.s   &&
+$QBE $unprotected_stack $diversify < /tmp/minic.ssa > /tmp/minic.s   &&
 cc $flags /tmp/minic.s $(dirname $0)/get_random_canary.s
 
 if test $? -ne 0

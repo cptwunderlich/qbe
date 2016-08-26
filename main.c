@@ -17,6 +17,7 @@ char debug['Z'+1] = {
 };
 
 int stackprotection=1;
+int diversify=0;
 
 static FILE *outf;
 static int dbg;
@@ -87,7 +88,7 @@ main(int ac, char *av[])
 
 	asm = Defaultasm;
 	outf = stdout;
-	while ((c = getopt(ac, av, "hud:o:G:")) != -1)
+	while ((c = getopt(ac, av, "huDd:o:G:")) != -1)
 		switch (c) {
 		case 'd':
 			for (; *optarg; optarg++)
@@ -113,6 +114,9 @@ main(int ac, char *av[])
 		case 'u':
 			stackprotection = 0;
 			break;
+		case 'D':
+			diversify=1;
+			break;
 		case 'h':
 		default:
 			fprintf(stderr, "%s [OPTIONS] {file.ssa, -}\n", av[0]);
@@ -121,6 +125,7 @@ main(int ac, char *av[])
 			fprintf(stderr, "\t%-10s generate gas (e) or osx (m) asm\n", "-G {e,m}");
 			fprintf(stderr, "\t%-10s dump debug information\n", "-d <flags>");
 			fprintf(stderr, "\t%-10s Unprotected - don't emit stack canary code\n", "-u");
+			fprintf(stderr, "\t%-10s Diversify - add NOPs to binary\n", "-D");
 			exit(c != 'h');
 		}
 
@@ -134,6 +139,9 @@ main(int ac, char *av[])
 		symprefix = "_";
 		break;
 	}
+
+	if (diversify && openrnd() < 0)
+		die("Failed to open /dev/urandom");
 
 	do {
 		f = av[optind];
@@ -149,6 +157,9 @@ main(int ac, char *av[])
 		}
 		parse(inf, f, data, func);
 	} while (++optind < ac);
+
+	if (diversify && closernd() < 0)
+		die("Failed to close /dev/urandom");
 
 	if (!dbg)
 		emitfin(outf);

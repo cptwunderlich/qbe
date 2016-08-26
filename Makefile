@@ -5,6 +5,7 @@ V = @
 OBJDIR = obj
 
 SRC = main.c util.c parse.c mem.c ssa.c copy.c fold.c live.c $(ABI).c isel.c spill.c rega.c emit.c
+SRC += random.c
 OBJ = $(SRC:%.c=$(OBJDIR)/%.o)
 
 CFLAGS += -Wall -Wextra -std=c99 -g -pedantic

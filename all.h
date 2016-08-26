@@ -476,6 +476,7 @@ enum Asm {
 };
 extern char debug['Z'+1];
 extern int stackprotection;
+extern int diversify;
 
 /* util.c */
 extern Typ typ[NTyp];
@@ -570,3 +571,8 @@ void emitdat(Dat *, FILE *);
 int stashfp(int64_t, int);
 void emitfin(FILE *);
 void emitinit(FILE *);
+
+/* random.c */
+int openrnd();
+int closernd();
+int get_random_0to3();
