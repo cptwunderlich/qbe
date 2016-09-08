@@ -8,4 +8,4 @@ config.h
 *.creator.user
 *.files
 *.includes
-
+.tags
